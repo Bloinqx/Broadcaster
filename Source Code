@@ -1,0 +1,89 @@
+options:
+	
+# === Main Options ===
+
+	# Main broadcaster command (also used as admin command prefix)
+	mainCmd: broadcaster
+	aliases: automsg, broadcaster, bcaster
+	
+	# No Permission Message
+	permDenied: &8• &7You lack permission for that
+	# Permission Node Prefix
+	permPrefix: skript # permission node will begin with this, ex: "skript.broadcaster"
+	
+	# Color Theme
+	aColor: &7 # Main text color
+	bColor: &b # Emphasis text color
+	cColor: &3 # Extra emphasis color numbers in broadcast list
+	
+# === Actual Skript ===
+	
+on load:
+	set {-broadcaster::name} to "{@mainCmd}"
+	set {-broadcaster::name} to proper case {-broadcaster::name}
+
+command /{@mainCmd} [<text>] [<text>]:
+	aliases: {@aliases}
+	permission: {@permPrefix}.broadcaster
+	permission message: {@permDenied}
+	trigger:
+		if arg-1 is not set:
+			send ""
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} new/add <message> {@aColor}- Add a new broadcast"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} del/remove <number> {@aColor}- Remove the specified broadcast"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} list {@aColor}- List all broadcasts"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} delay <minutes> {@aColor}- Set broadcast delay"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} toggle {@aColor}- Toggles broadcasts on/off"
+			send ""
+		else:
+			if arg-1 is "new" or "add":
+				if arg-2 is set:
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Added ""&f%colored arg-2%{@aColor}"" to broadcasts"
+					add arg-2 to {broadcaster::messages::*}
+				else:
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} new/add <message>"
+					
+			else if arg-1 is "list":
+				send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}All Broadcasts:"
+				loop {broadcaster::messages::*}:
+					send "&8• {@cColor}##%loop-index% {@aColor}- &r%colored loop-value%"
+
+			else if arg-1 is "del" or "remove":
+				arg-2 is set:
+					if arg-2 parsed as an integer <= size of {broadcaster::messages::*}:
+						send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Removed ""&f%{broadcaster::messages::%arg-2%}%{@aColor}"" from broadcasts"
+						set {_index} to arg-2 parsed as an integer
+						while {_index} < size of {broadcaster::messages::*}:
+							set {broadcaster::messages::%{_index}%} to {broadcaster::messages::%{_index}+1%}
+							add 1 to {_index}
+						delete {broadcaster::messages::%size of {broadcaster::messages::*}%}
+					else:
+						send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}There are only {@bColor}%size of {broadcaster::messages::*}% {@aColor}broadcasts"
+				else:
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} del/remove <number>"
+					
+			else if arg-1 is "delay":
+				arg-2 is set:
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Set delay to {@bColor}%arg-2% minute(s)"
+					set {broadcaster::delay} to arg-2
+				else:
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} delay <minutes>"
+					
+			else if arg-1 is "toggle":
+				if {broadcaster::disabled} is not set:
+					set {broadcaster::disabled} to true
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Broadcasts &cDisabled"
+				else:
+					delete {broadcaster::disabled}
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Broadcasts {@bColor}Enabled"
+			
+every 60 seconds:
+	if {broadcaster::disabled} is not set:
+		add 1 to {-broadcaster::minute}
+		if {-broadcaster::minute} >= {broadcaster::delay} parsed as number:
+			if {broadcaster::messages::1} is set:
+				add 1 to {-broadcaster::message}
+				if {-broadcaster::message} > size of {broadcaster::messages::*}:
+					set {-broadcaster::message} to 1
+				broadcast "%{broadcaster::messages::%{-broadcaster::message}%}%" 
+				set {broadcaster::minute} to 0
