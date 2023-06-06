@@ -1,9 +1,16 @@
+# ======================== #
+#
+#   Broadcaster v1.2.1 by Blinqx
+#
+# ======================== #
+
 options:
 	
 # === Main Options ===
 
 	# Main broadcaster command (also used as admin command prefix)
-	mainCmd: broadcaster
+	broadcasterMainCmd: broadcaster
+	broadcasterAliases: automsg, broadcaster, bcaster, tips, tip
 	
 	# No Permission Message
 	permDenied: &8• &7You lack permission for that
@@ -11,51 +18,66 @@ options:
 	permPrefix: skript # permission node will begin in "skript," ex: "skript.broadcaster"
 	
 	# Color Theme
-	aColor: &7
-	bColor: &b
-	cColor: &3
+	aColor: &7 # Main text color
+	bColor: &b # Emphasis text color
+	cColor: &3 # Extra emphasis color numbers in broadcast list
 	
-	personalToggleCmd: btoggle
 	# Command players will use to disable themselves from seeing the broadcasts
-	personalToggleCmdPerm: broadcaster.toggle
+	broadcasterPersonalToggle: btoggle
+	broadcasterPersonalAliases: togglebroadcasts, toggletips, ttoggle, brtoggle
 	# Permission to use personal toggle command
+	broadcasterPersonalTogglePerm: broadcaster.toggle
+	
+	# Set of characters that indicates a new line in a broadcast
+	newLineIndicator: ||
 	
 on load:
-	set {-broadcaster::name} to "{@mainCmd}"
+	set {-broadcaster::name} to "{@broadcasterMainCmd}"
 	set {-broadcaster::name} to proper case {-broadcaster::name}
 
 
+# === Actual Skript ===
 
-command /{@mainCmd} [<text>] [<text>] [<integer>]:
-	aliases: automsg, broadcaster, bcaster, tips, tip
+command /{@broadcasterMainCmd} [<text>] [<text>] [<integer>]:
+	aliases: {@broadcasterAliases}
 	permission: {@permPrefix}.broadcaster
 	permission message: {@permDenied}
 	trigger:
-		arg 1 is not set:
+		if arg-1 is not set:
 			send ""
-			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} new/add <message> {@aColor}- Add a new broadcast"
-			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} del/remove <number> {@aColor}- Remove the specified broadcast"
-			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} list {@aColor}- List all broadcasts"
-			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} delay <minutes> {@aColor}- Set broadcast delay"
-			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} toggle {@aColor}- Toggles broadcasts on/off"
-			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} swap <number> <number> {@aColor}- Swap location of two broadcasts"
-			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@mainCmd} order <numerical/random> {@aColor}- Set broadcast order"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@broadcasterMainCmd} new/add <message> {@aColor}- Add a new broadcast"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@broadcasterMainCmd} del/remove <number> {@aColor}- Remove the specified broadcast"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@broadcasterMainCmd} list {@aColor}- List all broadcasts"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@broadcasterMainCmd} delay <minutes> {@aColor}- Set broadcast delay"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@broadcasterMainCmd} toggle {@aColor}- Toggles broadcasts on/off"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@broadcasterMainCmd} swap <number> <number> {@aColor}- Swap location of two broadcasts"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@broadcasterMainCmd} order <numerical/random> {@aColor}- Set broadcast order"
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}/{@broadcasterPersonalToggle} {@aColor}- Toggle personal broadcast visibility"
+			send ""
+			send "&8[{@bColor}%{-broadcaster::name}%&8] {@bColor}v1.2.1 {@cColor}by {@bColor}Blinqx"
 			send ""
 		else:
-			arg-1 is "new" or "add":
-				arg 2 is set:
+			if arg-1 is "new" or "add":
+				if arg-2 is set:
 					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Added ""&f%colored arg-2%{@aColor}"" to broadcasts"
 					add arg-2 to {broadcaster::messages::*}
 				else:
-					send formatted "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} new/add <message>"
+					send formatted "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@broadcasterMainCmd} new/add <message>"
 			
 			else if arg-1 is "list":
 				send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}All Broadcasts:"
 				loop {broadcaster::messages::*}:
-					send "&8• {@cColor}##%loop-index% {@aColor}- &r%colored loop-value%"
+					set {_message::*} to loop-value split at "{@newLineIndicator}"
+					if size of {_message::*} > 1:
+						send formatted "&8• {@cColor}##%loop-index-1% {@aColor}- &r%{_message::1}%"
+						delete {_message::1}
+						loop {_message::*}:
+							send formatted "       {@aColor} &r%loop-value-2%"
+					else:
+						send formatted "&8• {@cColor}##%loop-index% {@aColor}- &r%colored loop-value%"
 
 			else if arg-1 is "del" or "remove":
-				arg-2 is set:
+				if arg-2 is set:
 					if arg-2 parsed as an integer <= size of {broadcaster::messages::*}:
 						send formatted "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Removed ""&f%{broadcaster::messages::%arg-2%}%{@aColor}"" from broadcasts"
 						set {_index} to arg-2 parsed as an integer
@@ -64,16 +86,16 @@ command /{@mainCmd} [<text>] [<text>] [<integer>]:
 							add 1 to {_index}
 						delete {broadcaster::messages::%size of {broadcaster::messages::*}%}
 					else:
-						send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}There aren't that many broadcasts"
+						send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}There are only {@bColor}%size of {broadcaster::messages::*}% {@aColor}broadcasts"
 				else:
-					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} del/remove <number>"
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@broadcasterMainCmd} del/remove <number>"
 					
 			else if arg-1 is "delay":
-				arg-2 is set:
+				if arg-2 is set:
 					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Set delay to {@bColor}%arg-2% minute(s)"
 					set {broadcaster::delay} to arg-2
 				else:
-					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} delay <minutes>"
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@broadcasterMainCmd} delay <minutes>"
 					
 			else if arg-1 is "toggle":
 				if {broadcaster::disabled} is not set:
@@ -98,11 +120,11 @@ command /{@mainCmd} [<text>] [<text>] [<integer>]:
 							else:
 								send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Error: Second bound too large"
 						else:
-							send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} swap <integer> <integer>"
+							send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@broadcasterMainCmd} swap <integer> <integer>"
 					else:
 						send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Error: First bound too large"
 				else:
-					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} swap <integer> <integer>"
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@broadcasterMainCmd} swap <integer> <integer>"
 					
 			else if arg-1 is "order":
 				if arg-2 is "numerical":
@@ -112,11 +134,11 @@ command /{@mainCmd} [<text>] [<text>] [<integer>]:
 					set {broadcaster::order} to "random"
 					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Changed broadcast order to {@bColor}%proper case arg-2%"
 				else:
-					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@mainCmd} order <numerical/random>"
+					send "&8[{@bColor}%{-broadcaster::name}%&8] {@aColor}Usage: /{@broadcasterMainCmd} order <numerical/random>"
 					
-command /{@personalToggleCmd}:
-	aliases: togglebroadcasts, toggletips, ttoggle, brtoggle
-	permission: {@permPrefix}.broadcaster.toggle
+command /{@broadcasterPersonalToggle}:
+	aliases: {@broadcasterPersonalAliases}
+	permission: {@permPrefix}.{@broadcasterPersonalTogglePerm}
 	permission message: {@permDenied}
 	trigger:
 		if {broadcaster::toggle::%player%} is not set:
@@ -139,7 +161,12 @@ every 60 seconds:
 					set {_temp} to {-broadcaster::message}
 					while {_temp} = {-broadcaster::message}:
 						set {-broadcaster::message} to random integer between 1 and size of {broadcaster::messages::*}
+				set {_message::*} to {broadcaster::messages::%{-broadcaster::message}%} split at "{@newLineIndicator}"
 				loop all players:
 					if {broadcaster::toggle::%loop-player%} is not set:
-						send colored "%{broadcaster::messages::%{-broadcaster::message}%}%" to loop-player
+						if size of {_message::*} > 1:
+							loop {_message::*}:
+								send formatted loop-value-2 to loop-player
+						else:
+							send formatted {broadcaster::messages::%{-broadcaster::message}%} to loop-player
 				set {-broadcaster::minute} to 0
